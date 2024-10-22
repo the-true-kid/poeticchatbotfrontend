@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -16,20 +16,28 @@ function App() {
     const [userInput, setUserInput] = useState('');
     const [reflection, setReflection] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [currentReflectionIndex, setCurrentReflectionIndex] = useState(0);
+    const inputRef = useRef(null);
+
+    // Trigger the next question on Enter key press
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && userInput.trim()) {
+            handleNextQuestion();
+        }
+    };
 
     const handleNextQuestion = () => {
-        const newResponses = [
-            ...responses,
-            { question: questions[currentQuestion], answer: userInput }
-        ];
-        setResponses(newResponses);
+        const newResponse = {
+            question: questions[currentQuestion],
+            answer: userInput,
+        };
+
+        setResponses([...responses, newResponse]);
         setUserInput('');
 
         if (currentQuestion + 1 < questions.length) {
             setCurrentQuestion(currentQuestion + 1);
         } else {
-            getReflection(newResponses);
+            getReflection([...responses, newResponse]);
         }
     };
 
@@ -46,35 +54,41 @@ function App() {
         }
     };
 
-    const handleNextReflection = () => {
-        if (currentReflectionIndex + 1 < reflection.length) {
-            setCurrentReflectionIndex(currentReflectionIndex + 1);
+    useEffect(() => {
+        // Auto-focus the input field when a new question appears
+        if (inputRef.current) {
+            inputRef.current.focus();
         }
-    };
+    }, [currentQuestion]);
 
     return (
         <div className="App">
-            <h1>Self-Reflective Flow</h1>
+            <h1>Self-Reflective Chatbot</h1>
 
             {loading ? (
                 <p>Generating your poetic reflection...</p>
             ) : reflection.length > 0 ? (
                 <div className="reflection-container">
-                    <p>{reflection[currentReflectionIndex]}</p>
-                    {currentReflectionIndex + 1 < reflection.length && (
-                        <button onClick={handleNextReflection}>Next Reflection</button>
-                    )}
+                    {reflection.map((line, index) => (
+                        <p key={index}>{line}</p>
+                    ))}
                 </div>
             ) : (
-                <div className="question-container fade-in-out">
-                    <p>{questions[currentQuestion]}</p>
+                <div className="chat-container">
+                    <p className="question">{questions[currentQuestion]}</p>
                     <textarea
+                        ref={inputRef}
                         value={userInput}
                         onChange={(e) => setUserInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         placeholder="Type your response here..."
                         rows="3"
                     />
-                    <button onClick={handleNextQuestion} disabled={!userInput.trim()}>
+                    <button
+                        className="next-button"
+                        onClick={handleNextQuestion}
+                        disabled={!userInput.trim()}
+                    >
                         {currentQuestion + 1 < questions.length ? 'Next' : 'Submit'}
                     </button>
                 </div>
