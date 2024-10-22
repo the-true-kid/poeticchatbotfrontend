@@ -2,28 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const questions = [
-    "If you were a house, what kind would you be?",
-    "Describe a color that reflects your current emotional state.",
-    "What do you value most in relationships?",
-    "Imagine your perfect day – how does it start?",
-    "If you could whisper advice to your younger self, what would it be?"
-];
-
 function App() {
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [responses, setResponses] = useState([]);
     const [userInput, setUserInput] = useState('');
-    const [reflection, setReflection] = useState([]);
+    const [reflection, setReflection] = useState('');
     const [loading, setLoading] = useState(false);
     const inputRef = useRef(null);
 
-    // Trigger the next question on Enter key press
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && userInput.trim()) {
-            handleNextQuestion();
-        }
-    };
+    const questions = [
+        "If you were a house, what architectural style would you embody?",
+        "What kind of windows would your house have, and what view would they reveal?",
+        "Describe the front door – what color, shape, or material feels like 'you'?",
+        "Imagine a room in your house where you feel the safest. What does it look like?",
+    ];
 
     const handleNextQuestion = () => {
         const newResponse = {
@@ -37,25 +29,23 @@ function App() {
         if (currentQuestion + 1 < questions.length) {
             setCurrentQuestion(currentQuestion + 1);
         } else {
-            getReflection([...responses, newResponse]);
+            generateReflection([...responses, newResponse]);
         }
     };
 
-    const getReflection = async (responses) => {
+    const generateReflection = async (responses) => {
         setLoading(true);
         try {
             const response = await axios.post('http://localhost:5000/api/reflection', { responses });
-            const reflectionSentences = response.data.reflection.split('. ').map(sentence => sentence.trim());
-            setReflection(reflectionSentences);
+            setReflection(response.data.reflection);
         } catch (error) {
-            console.error('Error generating reflection:', error);
+            console.error('Error generating reflection:', error.message);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        // Auto-focus the input field when a new question appears
         if (inputRef.current) {
             inputRef.current.focus();
         }
@@ -63,15 +53,13 @@ function App() {
 
     return (
         <div className="App">
-            <h1>Self-Reflective Chatbot</h1>
+            <h1>Self-Reflective House Chatbot</h1>
 
             {loading ? (
                 <p>Generating your poetic reflection...</p>
-            ) : reflection.length > 0 ? (
+            ) : reflection ? (
                 <div className="reflection-container">
-                    {reflection.map((line, index) => (
-                        <p key={index}>{line}</p>
-                    ))}
+                    <p>{reflection}</p>
                 </div>
             ) : (
                 <div className="chat-container">
@@ -80,7 +68,7 @@ function App() {
                         ref={inputRef}
                         value={userInput}
                         onChange={(e) => setUserInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={(e) => e.key === 'Enter' && handleNextQuestion()}
                         placeholder="Type your response here..."
                         rows="3"
                     />
